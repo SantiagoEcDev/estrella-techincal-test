@@ -3,19 +3,8 @@ import type { NextRequest } from "next/server";
 import { fetchAuthSession } from "aws-amplify/auth/server";
 import { runWithAmplifyServerContext } from "@/utils/amplifyServerUtils";
 
-const protectedRoutes = ["/dashboard"];
-
-const authRoutes = ["/"];
-
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-
-
-  const isAuthRoute = authRoutes.includes(pathname);
-
-  if (!protectedRoutes.includes(pathname) && !isAuthRoute) {
-    return NextResponse.next();
-  }
 
   const response = NextResponse.next();
 
@@ -30,16 +19,12 @@ export async function proxy(request: NextRequest) {
       return !!tokens?.accessToken;
     },
   });
-  console.log({
-    pathname,
-    authenticated,
-  });
 
-  if (protectedRoutes.includes(pathname) && !authenticated) {
+  if (pathname !== "/" && !authenticated) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (isAuthRoute && authenticated) {
+  if (pathname === "/" && authenticated) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -47,5 +32,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

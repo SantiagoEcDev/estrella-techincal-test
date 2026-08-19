@@ -31,17 +31,10 @@ export const confirmRegistration = async (email: string, code: string) => {
 };
 
 export const login = async (email: string, password: string) => {
-  const result = await signIn({
+  return signIn({
     username: email,
     password,
   });
-
-  const session = await fetchAuthSession();
-
-  console.log("ACCESS TOKEN:", session.tokens?.accessToken?.toString());
-  console.log("ID TOKEN:", session.tokens?.idToken?.toString());
-
-  return result;
 };
 
 export const logout = async () => {
