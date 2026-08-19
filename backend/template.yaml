@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: Education Estrella credit application backend
+
+Parameters:
+  DatabaseHost:
+    Type: String
+    Description: Endpoint de la base de datos RDS
+
+  DatabaseName:
+    Type: String
+    Description: Nombre de la base de datos
+
+  DatabaseUser:
+    Type: String
+    Description: Usuario de la base de datos
+
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: Contraseña de la base de datos
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 30
+    MemorySize: 256
+
+Resources:
+  CreditApplicationApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: https://cognito-idp.us-east-2.amazonaws.com/us-east-2_xB3SdwUlk
+              audience:
+                - 7rpslhbj63bq8efahffhqcs8ot
+
+  CreditApplicationFunction:
+    Type: AWS::Serverless::Function
+
+    Properties:
+      FunctionName: estrella-credit-application
+
+      CodeUri: .
+
+      Handler: src/handlers/credit-application.handler
+
+      Environment:
+        Variables:
+          RDS_HOST: !Ref DatabaseHost
+          RDS_DATABASE: !Ref DatabaseName
+          RDS_USER: !Ref DatabaseUser
+          RDS_PASSWORD: !Ref DatabasePassword
+
+      VpcConfig:
+        SubnetIds:
+          - subnet-013698dd6cf1d4780
+          - subnet-0644a0b3e924ee18b
+          - subnet-08c94c47e5fef1dc5
+
+        SecurityGroupIds:
+          - sg-079be7c1fa0f5fcf4
+
+      Events:
+        CreateCreditApplication:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CreditApplicationApi
+            Path: /credit-applications
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+        ListCreditApplications:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CreditApplicationApi
+            Path: /credit-applications
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+        GetCreditApplication:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CreditApplicationApi
+            Path: /credit-applications/{id}
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+        UpdateCreditApplication:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CreditApplicationApi
+            Path: /credit-applications/{id}
+            Method: PUT
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+        DeleteCreditApplication:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CreditApplicationApi
+            Path: /credit-applications/{id}
+            Method: DELETE
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint
+    Value: !Sub "https://${CreditApplicationApi}.execute-api.${AWS::Region}.amazonaws.com"
