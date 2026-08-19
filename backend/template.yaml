@@ -3,6 +3,24 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: Education Estrella credit application backend
 
+Parameters:
+  DatabaseHost:
+    Type: String
+    Description: Endpoint de la base de datos RDS
+
+  DatabaseName:
+    Type: String
+    Description: Nombre de la base de datos
+
+  DatabaseUser:
+    Type: String
+    Description: Usuario de la base de datos
+
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: Contraseña de la base de datos
+
 Globals:
   Function:
     Runtime: nodejs22.x
@@ -10,7 +28,6 @@ Globals:
     MemorySize: 256
 
 Resources:
-
   CreditApplicationApi:
     Type: AWS::Serverless::HttpApi
     Properties:
@@ -32,8 +49,7 @@ Resources:
       Auth:
         Authorizers:
           CognitoAuthorizer:
-            IdentitySource:
-              - $request.header.Authorization
+            IdentitySource: $request.header.Authorization
             JwtConfiguration:
               issuer: https://cognito-idp.us-east-2.amazonaws.com/us-east-2_xB3SdwUlk
               audience:
@@ -49,6 +65,13 @@ Resources:
 
       Handler: src/handlers/credit-application.handler
 
+      Environment:
+        Variables:
+          RDS_HOST: !Ref DatabaseHost
+          RDS_DATABASE: !Ref DatabaseName
+          RDS_USER: !Ref DatabaseUser
+          RDS_PASSWORD: !Ref DatabasePassword
+
       VpcConfig:
         SubnetIds:
           - subnet-013698dd6cf1d4780
@@ -59,7 +82,6 @@ Resources:
           - sg-079be7c1fa0f5fcf4
 
       Events:
-
         CreateCreditApplication:
           Type: HttpApi
           Properties:
@@ -113,7 +135,6 @@ Resources:
         Sourcemap: true
 
 Outputs:
-
   ApiUrl:
     Description: API Gateway endpoint
     Value: !Sub "https://${CreditApplicationApi}.execute-api.${AWS::Region}.amazonaws.com"

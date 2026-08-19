@@ -91,6 +91,7 @@ const parseBody = (
 };
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
+  
   const method = event.requestContext.http.method;
   const userId = getUserId(event);
 
