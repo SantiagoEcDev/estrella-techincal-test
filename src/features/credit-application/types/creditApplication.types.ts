@@ -20,7 +20,7 @@ export type CreateCreditApplicationPayload = {
   educationalInstitution: string;
   academicProgram: string;
   requestedAmount: number;
-  videoUrl?: string;
+  videoKey?: string;
 };
 export type UpdateCreditApplicationPayload = {
   identityDocument?: string;

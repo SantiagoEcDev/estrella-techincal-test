@@ -51,9 +51,6 @@ const CreditApplicationList = ({
     loadApplications();
   }, [refreshKey]);
 
-  const handleEdit = (application: CreditApplication) => {
-    console.log("Editar solicitud:", application);
-  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -150,7 +147,6 @@ const CreditApplicationList = ({
         <CreditApplicationCard
           key={application.id}
           application={application}
-          onEdit={handleEdit}
           onDelete={handleDelete}
           isDeleting={deletingId === application.id}
         />
