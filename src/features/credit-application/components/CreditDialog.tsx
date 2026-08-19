@@ -11,9 +11,15 @@ import CreditApplicationForm from "./CreateCreditForm";
 type CreditDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 };
 
-const CreditDialog = ({ open, onOpenChange }: CreditDialogProps) => {
+const CreditDialog = ({ open, onOpenChange, onSuccess }: CreditDialogProps) => {
+  const handleSuccess = () => {
+    onOpenChange(false);
+    onSuccess?.();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -21,7 +27,7 @@ const CreditDialog = ({ open, onOpenChange }: CreditDialogProps) => {
           <DialogTitle>Crear Solicitud de Crédito</DialogTitle>
         </DialogHeader>
 
-        <CreditApplicationForm />
+        <CreditApplicationForm onSuccess={handleSuccess} />
       </DialogContent>
     </Dialog>
   );

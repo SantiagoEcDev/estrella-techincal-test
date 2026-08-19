@@ -11,7 +11,6 @@ import {
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +24,7 @@ type CreditApplicationCardProps = {
   application: CreditApplication;
   onEdit: (application: CreditApplication) => void;
   onDelete: (id: string) => void;
+  isDeleting?: boolean;
 };
 
 const statusConfig = {
@@ -46,6 +46,7 @@ const CreditApplicationCard = ({
   application,
   onEdit,
   onDelete,
+  isDeleting,
 }: CreditApplicationCardProps) => {
   const status = statusConfig[application.status];
 
@@ -81,9 +82,9 @@ const CreditApplicationCard = ({
           <Badge variant={status.variant}>{status.label}</Badge>
 
           <DropdownMenu>
-            <DropdownMenuTrigger >
-                <MoreHorizontal className="size-4" />
-                <span className="sr-only">Abrir menú</span>
+            <DropdownMenuTrigger>
+              <MoreHorizontal className="size-4" />
+              <span className="sr-only">Abrir menú</span>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
@@ -95,9 +96,10 @@ const CreditApplicationCard = ({
               <DropdownMenuItem
                 variant="destructive"
                 onClick={() => onDelete(application.id)}
+                disabled={isDeleting}
               >
                 <Trash2 className="size-4" />
-                Eliminar
+                {isDeleting ? "Eliminando..." : "Eliminar"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

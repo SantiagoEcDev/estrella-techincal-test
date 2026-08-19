@@ -37,8 +37,7 @@ const AppSidebar = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      router.refresh();
+      await signOut();      router.refresh();
     } catch (error) {
       console.error(error);
       toast.error("No fue posible cerrar sesión");

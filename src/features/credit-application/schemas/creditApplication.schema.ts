@@ -26,5 +26,6 @@ export const creditApplicationFormSchema = z.object({
     .refine(
       (file) => ["video/mp4", "video/webm"].includes(file.type),
       "El video debe estar en formato MP4 o WebM",
-    ),
+    )
+    .optional(),
 });

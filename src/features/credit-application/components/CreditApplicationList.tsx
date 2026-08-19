@@ -10,14 +10,25 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCreditApplications } from "../services/creditApplication.service";
+import {
+  getCreditApplications,
+  deleteCreditApplication,
+} from "../services/creditApplication.service";
 import type { CreditApplication } from "../types/creditApplication.types";
 import CreditApplicationCard from "./CreditApplicationCard";
+import toast from "react-hot-toast";
 
-const CreditApplicationList = () => {
+type CreditApplicationListProps = {
+  refreshKey?: number;
+};
+
+const CreditApplicationList = ({
+  refreshKey = 0,
+}: CreditApplicationListProps) => {
   const [applications, setApplications] = useState<CreditApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadApplications = async () => {
@@ -25,9 +36,9 @@ const CreditApplicationList = () => {
         setIsLoading(true);
         setError(null);
 
-        const data = await getCreditApplications();
+        const applications = await getCreditApplications();
 
-        setApplications(data);
+        setApplications(applications);
       } catch (error) {
         console.error(error);
 
@@ -38,14 +49,28 @@ const CreditApplicationList = () => {
     };
 
     loadApplications();
-  }, []);
+  }, [refreshKey]);
 
   const handleEdit = (application: CreditApplication) => {
     console.log("Editar solicitud:", application);
   };
 
-  const handleDelete = (id: string) => {
-    console.log("Eliminar solicitud:", id);
+  const handleDelete = async (id: string) => {
+    try {
+      setDeletingId(id);
+
+      await deleteCreditApplication(id);
+
+      setApplications((prev) => prev.filter((app) => app.id !== id));
+
+      toast.success("Solicitud eliminada exitosamente");
+    } catch (error) {
+      console.error(error);
+
+      toast.error("No fue posible eliminar la solicitud");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (isLoading) {
@@ -127,6 +152,7 @@ const CreditApplicationList = () => {
           application={application}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          isDeleting={deletingId === application.id}
         />
       ))}
     </div>

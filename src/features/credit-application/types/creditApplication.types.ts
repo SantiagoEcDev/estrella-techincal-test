@@ -8,7 +8,7 @@ export type CreditApplication = {
   educationalInstitution: string;
   academicProgram: string;
   requestedAmount: number;
-  videoUrl: string | null;
+  videoUrl?: string | null;
   status: CreditApplicationStatus;
   createdAt: string;
   updatedAt: string;
