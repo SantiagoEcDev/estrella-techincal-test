@@ -9,14 +9,15 @@ const CreditPage = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <>
+    <div className="flex w-full flex-col gap-6">
       <div className="flex w-full justify-end">
         <Button onClick={() => setOpen(true)}>Crear solicitud</Button>
 
         <CreditDialog open={open} onOpenChange={setOpen} />
       </div>
+
       <CreditApplicationList />
-    </>
+    </div>
   );
 };
 

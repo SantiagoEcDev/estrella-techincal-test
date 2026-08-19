@@ -12,7 +12,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCreditApplications } from "../services/creditApplication.service";
 import type { CreditApplication } from "../types/creditApplication.types";
-import CreditApplicationCard from "./CredidApplicationCard";
+import CreditApplicationCard from "./CreditApplicationCard";
 
 const CreditApplicationList = () => {
   const [applications, setApplications] = useState<CreditApplication[]>([]);

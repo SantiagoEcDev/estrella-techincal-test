@@ -11,10 +11,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { FileText, LayoutDashboard, Star } from "lucide-react";
+import { FileText, LayoutDashboard, LogOut, Star } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { signOut } from "aws-amplify/auth";
+import toast from "react-hot-toast";
 
 const navigation = [
   {
@@ -31,6 +33,17 @@ const navigation = [
 
 const AppSidebar = () => {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error("No fue posible cerrar sesión");
+    }
+  };
 
   return (
     <Sidebar className="border-r border-slate-200">
@@ -39,10 +52,12 @@ const AppSidebar = () => {
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Star className="h-4.5 w-4.5 fill-primary-foreground" />
           </div>
+
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold tracking-tight text-slate-900">
               Education Estrella
             </span>
+
             <span className="text-xs text-slate-500">Panel de créditos</span>
           </div>
         </div>
@@ -73,6 +88,7 @@ const AppSidebar = () => {
                         {isActive && (
                           <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
                         )}
+
                         <span
                           className={cn(
                             "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors",
@@ -83,12 +99,32 @@ const AppSidebar = () => {
                         >
                           <item.icon className="h-4 w-4" />
                         </span>
+
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-auto px-3 pb-4">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={handleLogout}
+                  className="group h-10 rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors group-hover:text-slate-600">
+                    <LogOut className="h-4 w-4" />
+                  </span>
+
+                  <span>Cerrar sesión</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
