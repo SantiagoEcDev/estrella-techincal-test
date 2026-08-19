@@ -12,6 +12,20 @@ type ApiResponse<T> = {
   message?: string;
 };
 
+type ApiCreditApplication = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  identity_document: string;
+  educational_institution: string;
+  academic_program: string;
+  requested_amount: string;
+  video_url: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  updated_at: string;
+};
+
 const request = async <T>(
   endpoint: string,
   options?: RequestInit,
@@ -40,10 +54,26 @@ const request = async <T>(
   return response.json();
 };
 
+const mapCreditApplication = (
+  application: ApiCreditApplication,
+): CreditApplication => ({
+  id: application.id,
+  userId: application.user_id,
+  fullName: application.full_name,
+  identityDocument: application.identity_document,
+  educationalInstitution: application.educational_institution,
+  academicProgram: application.academic_program,
+  requestedAmount: Number(application.requested_amount),
+  videoUrl: application.video_url,
+  status: application.status,
+  createdAt: application.created_at,
+  updatedAt: application.updated_at,
+});
+
 export const createCreditApplication = async (
   data: CreateCreditApplicationPayload,
 ) => {
-  const response = await request<ApiResponse<CreditApplication>>(
+  const response = await request<ApiResponse<ApiCreditApplication>>(
     "/credit-applications",
     {
       method: "POST",
@@ -51,36 +81,36 @@ export const createCreditApplication = async (
     },
   );
 
-  return response.data;
+  return mapCreditApplication(response.data);
 };
 
 export const getCreditApplications = async () => {
-  const response = await request<ApiResponse<CreditApplication[]>>(
+  const response = await request<ApiResponse<ApiCreditApplication[]>>(
     "/credit-applications",
     {
       method: "GET",
     },
   );
 
-  return response.data;
+  return response.data.map(mapCreditApplication);
 };
 
 export const getCreditApplication = async (id: string) => {
-  const response = await request<ApiResponse<CreditApplication>>(
+  const response = await request<ApiResponse<ApiCreditApplication>>(
     `/credit-applications/${id}`,
     {
       method: "GET",
     },
   );
 
-  return response.data;
+  return mapCreditApplication(response.data);
 };
 
 export const updateCreditApplication = async (
   id: string,
   data: UpdateCreditApplicationPayload,
 ) => {
-  const response = await request<ApiResponse<CreditApplication>>(
+  const response = await request<ApiResponse<ApiCreditApplication>>(
     `/credit-applications/${id}`,
     {
       method: "PUT",
@@ -88,7 +118,7 @@ export const updateCreditApplication = async (
     },
   );
 
-  return response.data;
+  return mapCreditApplication(response.data);
 };
 
 export const deleteCreditApplication = async (id: string) => {
