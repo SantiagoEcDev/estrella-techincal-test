@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import z from "zod";
+import { Eye, EyeOff } from "lucide-react";
 import { loginFormSchema } from "../schemas/loginFormSchema.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -12,6 +14,8 @@ import { useRouter } from "next/navigation";
 
 const LoginForm = () => {
   const router = useRouter();
+
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const form = useForm<z.infer<typeof loginFormSchema>>({
     resolver: zodResolver(loginFormSchema),
@@ -76,13 +80,34 @@ const LoginForm = () => {
           <Field data-invalid={fieldState.invalid} className="gap-2">
             <FieldLabel htmlFor="password">Contraseña</FieldLabel>
 
-            <Input
-              {...field}
-              id="password"
-              type="password"
-              placeholder="Ingresa tu contraseña"
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <Input
+                {...field}
+                id="password"
+                type={isPasswordVisible ? "text" : "password"}
+                placeholder="Ingresa tu contraseña"
+                autoComplete="current-password"
+                className="pr-10"
+              />
+
+              <button
+                type="button"
+                onClick={() => setIsPasswordVisible((current) => !current)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={
+                  isPasswordVisible
+                    ? "Ocultar contraseña"
+                    : "Mostrar contraseña"
+                }
+                tabIndex={-1}
+              >
+                {isPasswordVisible ? (
+                  <EyeOff className="size-4 cursor-pointer text-primary" />
+                ) : (
+                  <Eye className="size-4 cursor-pointer text-primary" />
+                )}
+              </button>
+            </div>
 
             {fieldState.invalid && (
               <FieldError>{fieldState.error?.message}</FieldError>
