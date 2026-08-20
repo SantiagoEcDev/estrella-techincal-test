@@ -4,7 +4,6 @@ import {
   CalendarDays,
   GraduationCap,
   MoreHorizontal,
-  Pencil,
   School,
   Trash2,
 } from "lucide-react";
@@ -22,7 +21,6 @@ import type { CreditApplication } from "../types/creditApplication.types";
 
 type CreditApplicationCardProps = {
   application: CreditApplication;
-  onEdit: (application: CreditApplication) => void;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
 };
@@ -44,7 +42,6 @@ const statusConfig = {
 
 const CreditApplicationCard = ({
   application,
-  onEdit,
   onDelete,
   isDeleting,
 }: CreditApplicationCardProps) => {
@@ -88,10 +85,6 @@ const CreditApplicationCard = ({
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(application)}>
-                <Pencil className="size-4" />
-                Editar
-              </DropdownMenuItem>
 
               <DropdownMenuItem
                 variant="destructive"

@@ -21,6 +21,10 @@ Parameters:
     NoEcho: true
     Description: Contraseña de la base de datos
 
+  FrontendOrigin:
+    Type: String
+    Description: Origen del frontend permitido para subir videos directo a S3 (ej. https://app.estrella.com)
+
 Globals:
   Function:
     Runtime: nodejs22.x
@@ -134,7 +138,78 @@ Resources:
         Target: es2022
         Sourcemap: true
 
+  # --- Video de presentación: bucket S3 + Lambda para presigned URL ---
+
+  VideosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "estrella-credit-application-videos-${AWS::AccountId}"
+
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods:
+              - PUT
+            AllowedOrigins:
+              - !Ref FrontendOrigin
+            AllowedHeaders:
+              - "*"
+            MaxAge: 3000
+
+      LifecycleConfiguration:
+        Rules:
+          - Id: AbortIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  GeneratePresignedUrlFunction:
+    Type: AWS::Serverless::Function
+
+    Properties:
+      FunctionName: estrella-credit-application-video-upload-url
+
+      CodeUri: .
+
+      Handler: src/handlers/generate-presigned-url.handler
+
+      Timeout: 10
+
+      Environment:
+        Variables:
+          VIDEOS_BUCKET: !Ref VideosBucket
+
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref VideosBucket
+
+      Events:
+        GenerateVideoUploadUrl:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CreditApplicationApi
+            Path: /credit-applications/video-upload-url
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+
 Outputs:
   ApiUrl:
     Description: API Gateway endpoint
     Value: !Sub "https://${CreditApplicationApi}.execute-api.${AWS::Region}.amazonaws.com"
+
+  VideosBucketName:
+    Description: Nombre del bucket S3 para videos de presentación
+    Value: !Ref VideosBucket
