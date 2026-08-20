@@ -51,10 +51,6 @@ const CreditApplicationList = ({
     loadApplications();
   }, [refreshKey]);
 
-  const handleEdit = (application: CreditApplication) => {
-    console.log("Editar solicitud:", application);
-  };
-
   const handleDelete = async (id: string) => {
     try {
       setDeletingId(id);
@@ -127,20 +123,27 @@ const CreditApplicationList = ({
 
   if (applications.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <FileText />
-          </EmptyMedia>
+      <div className="flex min-h-[60vh] w-full items-center justify-center">
+        <Empty className="w-full max-w-2xl border-none py-16">
+          <EmptyHeader className="items-center">
+            <EmptyMedia
+              variant="icon"
+              className="mb-4 flex size-20 items-center justify-center rounded-3xl bg-primary/10 text-primary"
+            >
+              <FileText className="size-10" />
+            </EmptyMedia>
 
-          <EmptyTitle>No tienes solicitudes de crédito</EmptyTitle>
+            <EmptyTitle className="text-2xl font-semibold md:text-3xl">
+              No tienes solicitudes de crédito
+            </EmptyTitle>
 
-          <EmptyDescription>
-            Cuando envíes una solicitud de crédito, podrás consultar aquí su
-            estado y la información relacionada.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+            <EmptyDescription className="max-w-lg text-center text-base leading-7">
+              Cuando envíes una solicitud de crédito, podrás consultar aquí su
+              estado, la información de tu solicitud y el progreso del proceso.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </div>
     );
   }
 
@@ -150,7 +153,6 @@ const CreditApplicationList = ({
         <CreditApplicationCard
           key={application.id}
           application={application}
-          onEdit={handleEdit}
           onDelete={handleDelete}
           isDeleting={deletingId === application.id}
         />

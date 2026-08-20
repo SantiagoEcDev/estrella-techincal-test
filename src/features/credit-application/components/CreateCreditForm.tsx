@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -12,6 +13,7 @@ import {
   createCreditApplication,
   updateCreditApplication,
 } from "../services/creditApplication.service";
+import { uploadVideoToS3 } from "../services/videoUpload.service";
 import toast from "react-hot-toast";
 import { creditApplicationFormSchema } from "../schemas/creditApplication.schema";
 import type { CreditApplication } from "../types/creditApplication.types";
@@ -29,6 +31,8 @@ const CreditApplicationForm = ({
 }: CreditApplicationFormProps) => {
   const isEditing = Boolean(application);
 
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(creditApplicationFormSchema),
     defaultValues: {
@@ -42,12 +46,23 @@ const CreditApplicationForm = ({
 
   const onSubmit = async (data: FormValues) => {
     try {
+      let videoKey: string | undefined;
+
+      if (data.video) {
+        setUploadProgress(0);
+
+        videoKey = await uploadVideoToS3(data.video, setUploadProgress);
+
+        setUploadProgress(null);
+      }
+
       if (application) {
         await updateCreditApplication(application.id, {
           identityDocument: data.identityDocument,
           educationalInstitution: data.educationalInstitution,
           academicProgram: data.academicProgram,
           requestedAmount: data.requestedAmount,
+          ...(videoKey && { videoKey }),
         });
 
         toast.success("Solicitud actualizada exitosamente");
@@ -71,6 +86,7 @@ const CreditApplicationForm = ({
           academicProgram: data.academicProgram,
           requestedAmount: data.requestedAmount,
           fullName,
+          videoKey,
         });
 
         toast.success("Solicitud creada exitosamente");
@@ -81,19 +97,26 @@ const CreditApplicationForm = ({
     } catch (error) {
       console.error(error);
 
+      setUploadProgress(null);
+
       form.setError("root", {
         type: "server",
-        message: isEditing
-          ? "No fue posible actualizar la solicitud"
-          : "No fue posible crear la solicitud",
+        message:
+          error instanceof Error && error.message.includes("subir")
+            ? error.message
+            : isEditing
+              ? "No fue posible actualizar la solicitud"
+              : "No fue posible crear la solicitud",
       });
     }
   };
 
+  const isUploading = uploadProgress !== null;
+
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
-      className="flex w-full flex-col gap-5"
+      className="grid w-full grid-cols-1 gap-5 md:grid-cols-2"
     >
       <Controller
         name="identityDocument"
@@ -132,7 +155,7 @@ const CreditApplicationForm = ({
               {...field}
               id="educationalInstitution"
               type="text"
-              placeholder="Ingresa tu institución educativa"
+              placeholder="Ingresa tu institución"
               autoComplete="organization"
             />
 
@@ -156,7 +179,7 @@ const CreditApplicationForm = ({
               {...field}
               id="academicProgram"
               type="text"
-              placeholder="Ingresa tu programa académico"
+              placeholder="Ingresa tu programa "
             />
 
             {fieldState.invalid && (
@@ -177,7 +200,7 @@ const CreditApplicationForm = ({
               id="requestedAmount"
               type="text"
               inputMode="numeric"
-              placeholder="Ingresa el monto solicitado"
+              placeholder="Ingresa el monto"
               value={field.value ? field.value.toLocaleString("es-CO") : ""}
               onChange={(event) => {
                 const rawValue = event.target.value.replace(/\D/g, "");
@@ -197,7 +220,10 @@ const CreditApplicationForm = ({
         name="video"
         control={form.control}
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid} className="gap-2">
+          <Field
+            data-invalid={fieldState.invalid}
+            className="gap-2 md:col-span-2"
+          >
             <FieldLabel htmlFor="video">Video de presentación</FieldLabel>
 
             <label
@@ -228,6 +254,7 @@ const CreditApplicationForm = ({
                 type="file"
                 accept="video/mp4,video/webm"
                 className="hidden"
+                disabled={isUploading}
                 onChange={(event) => {
                   const file = event.target.files?.[0];
 
@@ -235,6 +262,21 @@ const CreditApplicationForm = ({
                 }}
               />
             </label>
+
+            {isUploading && (
+              <div className="flex flex-col gap-1">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Subiendo video... {uploadProgress}%
+                </p>
+              </div>
+            )}
 
             {fieldState.invalid && (
               <FieldError>{fieldState.error?.message}</FieldError>
@@ -244,22 +286,28 @@ const CreditApplicationForm = ({
       />
 
       {form.formState.errors.root && (
-        <FieldError>{form.formState.errors.root.message}</FieldError>
+        <div className="md:col-span-2">
+          <FieldError>{form.formState.errors.root.message}</FieldError>
+        </div>
       )}
 
-      <Button
-        type="submit"
-        className="h-12 w-full"
-        disabled={form.formState.isSubmitting}
-      >
-        {form.formState.isSubmitting
-          ? isEditing
-            ? "Actualizando solicitud..."
-            : "Creando solicitud..."
-          : isEditing
-            ? "Actualizar solicitud"
-            : "Crear solicitud"}
-      </Button>
+      <div className="md:col-span-2">
+        <Button
+          type="submit"
+          className="h-12 w-full"
+          disabled={form.formState.isSubmitting || isUploading}
+        >
+          {isUploading
+            ? `Subiendo video... ${uploadProgress}%`
+            : form.formState.isSubmitting
+              ? isEditing
+                ? "Actualizando solicitud..."
+                : "Creando solicitud..."
+              : isEditing
+                ? "Actualizar solicitud"
+                : "Crear solicitud"}
+        </Button>
+      </div>
     </form>
   );
 };
