@@ -1,9 +1,7 @@
-
+import DashboardHero from "@/features/dashboard/components/DashboardHero";
 
 const DashboardPage = () => {
-  return (
-    <div> DashboardPage</div>
-  )
-}
+  return <DashboardHero />;
+};
 
-export default DashboardPage
+export default DashboardPage;
