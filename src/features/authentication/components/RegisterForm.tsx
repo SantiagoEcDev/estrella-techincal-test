@@ -48,6 +48,10 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
       label: "Al menos un número",
       valid: /[0-9]/.test(password),
     },
+    {
+      label: "Al menos un carácter especial",
+      valid: /[^A-Za-z0-9]/.test(password),
+    },
   ];
 
   const onSubmit = async (data: z.infer<typeof registerFormSchema>) => {
