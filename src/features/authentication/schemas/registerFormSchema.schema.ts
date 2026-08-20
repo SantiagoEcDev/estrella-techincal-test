@@ -22,6 +22,10 @@ export const registerFormSchema = z.object({
       (password) =>
         [...password].some((character) => character >= "a" && character <= "z"),
       "La contraseña debe contener al menos una letra minúscula",
+    )
+    .refine(
+      (password) => /[^A-Za-z0-9]/.test(password),
+      "La contraseña debe contener al menos un carácter especial",
     ),
 });
 
