@@ -19,7 +19,6 @@ Le pedí que ayudara principalmente con:
 
 La propuesta inicial permitió avanzar rápidamente en la implementación y sirvió como punto de partida para separar las diferentes responsabilidades del sistema.
 
-
 ## 2. Propuesta que no funcionó
 
 Uno de los problemas principales apareció en AWS Lambda con el error:
@@ -124,7 +123,7 @@ RDS
 El error del frontend:
 
 ```json
-{"message":"Internal Server Error"}
+{ "message": "Internal Server Error" }
 ```
 
 no era suficiente para determinar la causa. Los logs de Lambda permitieron identificar que el problema ocurría antes de ejecutar correctamente la función, por errores de configuración del handler y posteriormente por problemas de empaquetado.
@@ -183,23 +182,25 @@ La IA también ayudó a plantear una estrategia utilizando Amazon S3 para los ar
 
 La idea era evitar enviar directamente el archivo completo a Lambda, utilizando S3 como almacenamiento independiente.
 
-La arquitectura prevista era:
+La arquitectura implementada fue:
 
 ```
 Frontend
-   ↓
-API / generación de URL
-   ↓
-S3
-   ↓
-Video
+   ↓  1. Solicita URL prefirmada
+API Gateway → Lambda (genera la URL)
+   ↓  2. Devuelve uploadUrl + key
+Frontend
+   ↓  3. PUT directo del video a S3
+Amazon S3 (bucket privado, sin acceso público)
 ```
 
-Sin embargo, la subida del video no quedó completamente implementada al finalizar la prueba.
+Durante la implementación aparecieron varios problemas que requirieron depuración manual además de las propuestas iniciales de la IA:
 
-La funcionalidad relacionada con la solicitud de crédito y su integración con el backend fue priorizada, pero la subida efectiva del video a S3 quedó pendiente.
+- El bucket quedaba inaccesible desde el navegador por falta de configuración de CORS; hubo que agregar explícitamente `CorsConfiguration` en el bucket de S3, restringida al origen del frontend (`FrontendOrigin`), ya que sin ella el `PUT` prefirmado fallaba desde el cliente aunque la URL fuera válida.
+- La Lambda que genera la URL prefirmada validaba `fileSize` como parte del body de la petición, pero el servicio del frontend inicialmente no lo enviaba, lo que producía un error `"El tamaño del archivo no es válido"` sin relación con el tamaño real del archivo. Se identificó revisando la validación en el propio handler y comparándola con el payload que efectivamente mandaba el frontend.
+- Se verificó explícitamente que el bucket quedara privado (`PublicAccessBlockConfiguration` con los cuatro flags en `true` y sin `BucketPolicy` pública), de forma que el único acceso posible al video sea mediante URLs prefirmadas de corta duración (5 minutos) generadas por una Lambda autenticada con Cognito.
 
-Considero que esta es una limitación importante del resultado final y no intento presentarla como una funcionalidad terminada.
+La funcionalidad de subida de video a S3 quedó terminada y probada de extremo a extremo: selección del archivo en el formulario, solicitud de la URL prefirmada, subida directa con barra de progreso, y persistencia de la referencia (`videoKey`) junto con la solicitud en RDS.
 
 ## 8. Criterio utilizado al trabajar con IA
 
