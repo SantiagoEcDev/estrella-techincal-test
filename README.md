@@ -1,29 +1,34 @@
 # Sistema de Solicitud de Crédito Educativo
 
-Aplicación web para la gestión de solicitudes de crédito educativo. Permite a los usuarios crear, consultar, editar y eliminar sus solicitudes, autenticándose mediante AWS Cognito.
+Aplicación web para la gestión de solicitudes de crédito educativo. Permite a los usuarios crear, consultar, editar y eliminar sus solicitudes, autenticándose mediante AWS Cognito, e incluye la subida de un video de presentación almacenado en S3.
 
 ## Stack tecnológico
 
 **Frontend**
+
 - Next.js (App Router) + TypeScript
 - React Hook Form + Zod para validación de formularios
 - shadcn/ui + Tailwind CSS
 - AWS Amplify (Auth) para integración con Cognito
 
 **Backend**
+
 - AWS Lambda (Node.js / TypeScript)
 - API Gateway (HTTP API)
 - AWS SAM para infraestructura como código
 - esbuild para el bundling de las funciones Lambda
 
 **Base de datos**
+
 - Amazon RDS (PostgreSQL)
 
 **Autenticación**
+
 - AWS Cognito (User Pool + JWT)
 
 **Almacenamiento de archivos**
-- Amazon S3 (planeado para los videos de presentación — ver [Limitaciones conocidas](#limitaciones-conocidas))
+
+- Amazon S3, para los videos de presentación (subida directa desde el navegador vía URL prefirmada — ver [Subida de archivos](#subida-de-archivos))
 
 ---
 
@@ -69,6 +74,13 @@ RDS_USER=
 RDS_PASSWORD=
 COGNITO_USER_POOL_ID=
 COGNITO_CLIENT_ID=
+VIDEOS_BUCKET=
+```
+
+El parámetro `FrontendOrigin` del `template.yaml` debe apuntar al origen del frontend (por ejemplo `http://localhost:3000` en desarrollo) para que el CORS del bucket de videos permita la subida directa desde el navegador:
+
+```bash
+sam deploy --parameter-overrides FrontendOrigin=http://localhost:3000
 ```
 
 Esto expone la API, apuntando a las funciones Lambda locales.
@@ -97,8 +109,6 @@ npm run dev
 ```
 
 La aplicación queda disponible en `http://localhost:3000` (o el puerto que Next.js asigne si el 3000 ya está tomado por el backend local).
-
-
 
 ---
 
@@ -136,21 +146,23 @@ API Gateway (authorizer valida el JWT)
 Lambda
 ```
 
-La autenticación se delega completamente en Cognito. API Gateway valida el JWT mediante un *authorizer* antes de invocar la Lambda correspondiente, centralizando la seguridad y evitando duplicar lógica de validación de tokens en cada función.
+La autenticación se delega completamente en Cognito. API Gateway valida el JWT mediante un _authorizer_ antes de invocar la Lambda correspondiente, centralizando la seguridad y evitando duplicar lógica de validación de tokens en cada función.
 
-### Subida de archivos (diseño previsto, no finalizado)
+### Subida de archivos
 
 ```
 Frontend
-   ↓
-API (generación de URL prefirmada)
-   ↓
-S3
-   ↓
-Video
+   ↓  1. Solicita URL prefirmada (metadatos: nombre, tipo, tamaño)
+API Gateway → Lambda (generación de URL prefirmada)
+   ↓  2. Devuelve uploadUrl + key
+Frontend
+   ↓  3. PUT directo del video a S3 con la URL prefirmada
+Amazon S3 (bucket privado, sin acceso público)
+   ↓  4. Se guarda la key del video junto con la solicitud
+Amazon RDS (PostgreSQL)
 ```
 
-La idea de diseño era que el frontend solicitara una URL prefirmada al backend y subiera el video directamente a S3, sin pasar el archivo completo por Lambda. Este flujo **no quedó implementado** al cierre de la prueba (ver [Limitaciones conocidas](#limitaciones-conocidas)).
+El frontend solicita una URL prefirmada al backend y sube el video directamente a S3 desde el navegador, sin que el archivo pase por Lambda ni por API Gateway. Esto evita los límites de payload de ambos servicios (ver [Decisiones técnicas](#decisiones-técnicas)) y permite mostrar el progreso de la subida en tiempo real. El bucket de S3 tiene bloqueado todo acceso público; el video solo es accesible mediante URLs prefirmadas de corta duración.
 
 ### Separación de responsabilidades en el backend
 
@@ -180,7 +192,7 @@ Se optó por **AWS Lambda** (en lugar de un contenedor en ECS/Fargate) por:
 
 - **Costo**: el tráfico esperado para esta prueba/proyecto es bajo e intermitente; Lambda solo cobra por invocación, mientras que un contenedor implica costo fijo de tener el servicio corriendo.
 - **Operación**: no requiere gestionar clúster, escalado manual, ni definir tareas de infraestructura adicionales (balanceadores, autoscaling groups, etc.).
-- **Integración nativa con API Gateway y Cognito**, simplificando la validación de JWT mediante un *authorizer* administrado sin código adicional.
+- **Integración nativa con API Gateway y Cognito**, simplificando la validación de JWT mediante un _authorizer_ administrado sin código adicional.
 - **Escalado automático** ante picos de solicitudes, sin aprovisionamiento previo.
 
 El costo de esta decisión fue una curva de aprendizaje/depuración más alta relacionada con el empaquetado (esbuild), el nombre/ruta del handler y la resolución de módulos ESM vs CommonJS dentro del bundle — problemas documentados en detalle en `AI-LOG.md`.
@@ -189,7 +201,7 @@ El costo de esta decisión fue una curva de aprendizaje/depuración más alta re
 
 Se eligió **Cognito + JWT validado en API Gateway** en lugar de implementar autenticación propia o validar tokens manualmente dentro de cada Lambda, porque:
 
-- Centraliza la seguridad en un único punto (el *authorizer* de API Gateway), evitando duplicar lógica de validación en cada función.
+- Centraliza la seguridad en un único punto (el _authorizer_ de API Gateway), evitando duplicar lógica de validación en cada función.
 - Evita almacenar y gestionar contraseñas o credenciales sensibles dentro de la aplicación.
 - Se integra directamente con AWS Amplify en el frontend, reduciendo el código necesario para login, manejo de sesión y refresco de tokens.
 
@@ -201,7 +213,7 @@ Se eligió S3 (en lugar de enviar el archivo completo a través de Lambda/API Ga
 - **Costo y eficiencia**: subir directamente a S3 desde el navegador (vía URL prefirmada) evita que el archivo transite por Lambda, reduciendo tiempo de ejecución facturable y complejidad del backend.
 - **Separación de responsabilidades**: el backend solo gestiona metadatos y la generación de la URL; S3 se encarga del almacenamiento binario.
 
-**Esta funcionalidad no se completó** (ver limitaciones).
+El bucket se configuró con acceso público bloqueado en su totalidad (`PublicAccessBlockConfiguration`) y CORS restringido al origen del frontend, de forma que la única vía de acceso al archivo es mediante URLs prefirmadas de corta duración generadas por la Lambda autenticada con Cognito.
 
 ### Elección de base de datos: PostgreSQL (Amazon RDS)
 
@@ -216,7 +228,7 @@ Las credenciales de conexión se manejan como **variables de entorno de Lambda**
 
 ## Qué haría distinto con más tiempo
 
-- **Completar la subida de video a S3**: implementar el endpoint que genera la URL prefirmada, la subida directa desde el frontend con indicador de progreso, y la actualización del registro en base de datos una vez finalizada la subida (idealmente confirmada vía evento de S3 en lugar de confiar únicamente en la respuesta del cliente).
+- Confirmar la subida del video mediante un evento de S3 (por ejemplo, un trigger `s3:ObjectCreated` que actualice el registro en base de datos) en lugar de depender únicamente de la respuesta del cliente tras el `PUT`, para cubrir el caso en que la subida se complete pero el navegador se cierre antes de notificar al backend.
 - Agregar pruebas automatizadas, al menos para las funciones Lambda (services/repositories) y los flujos críticos del frontend (creación y eliminación de solicitudes).
 - Implementar paginación y filtros en el listado de solicitudes.
 - Conectar completamente el flujo de edición de solicitudes, reutilizando el mismo formulario de creación en modo edición.
