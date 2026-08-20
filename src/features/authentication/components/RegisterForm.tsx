@@ -2,7 +2,8 @@
 
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useWatch, useForm } from "react-hook-form";
+import { Check, Circle } from "lucide-react";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,12 +18,37 @@ type RegisterFormProps = {
 const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
   const form = useForm<z.infer<typeof registerFormSchema>>({
     resolver: zodResolver(registerFormSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       email: "",
       password: "",
     },
   });
+
+  const password = useWatch({
+    control: form.control,
+    name: "password",
+  });
+
+  const passwordRequirements = [
+    {
+      label: "Mínimo 8 caracteres",
+      valid: password.length >= 8,
+    },
+    {
+      label: "Al menos una letra mayúscula",
+      valid: /[A-Z]/.test(password),
+    },
+    {
+      label: "Al menos una letra minúscula",
+      valid: /[a-z]/.test(password),
+    },
+    {
+      label: "Al menos un número",
+      valid: /[0-9]/.test(password),
+    },
+  ];
 
   const onSubmit = async (data: z.infer<typeof registerFormSchema>) => {
     try {
@@ -43,7 +69,8 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
             break;
 
           case "InvalidPasswordException":
-            message = "La contraseña no cumple con los requisitos";
+            message =
+              "La contraseña no cumple con los requisitos de seguridad.";
             break;
 
           case "InvalidParameterException":
@@ -123,6 +150,37 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
               autoComplete="new-password"
             />
 
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                La contraseña debe cumplir con:
+              </p>
+
+              <div className="flex flex-col gap-1.5">
+                {passwordRequirements.map((requirement) => (
+                  <div
+                    key={requirement.label}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    {requirement.valid ? (
+                      <Check className="size-3.5 text-green-600" />
+                    ) : (
+                      <Circle className="size-3.5 text-muted-foreground" />
+                    )}
+
+                    <span
+                      className={
+                        requirement.valid
+                          ? "text-green-600"
+                          : "text-muted-foreground"
+                      }
+                    >
+                      {requirement.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {fieldState.invalid && (
               <FieldError>{fieldState.error?.message}</FieldError>
             )}
@@ -130,12 +188,10 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
         )}
       />
 
-      <span className="flex justify-center ">
-        {form.formState.errors.root && (
-          <FieldError>{form.formState.errors.root.message}</FieldError>
-        )}
-      </span>
-      
+      {form.formState.errors.root && (
+        <FieldError>{form.formState.errors.root.message}</FieldError>
+      )}
+
       <Button
         type="submit"
         className="h-12 w-full"
